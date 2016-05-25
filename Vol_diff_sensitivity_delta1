@@ -1,12 +1,3 @@
-# library (ggplot2)
-# library(scales)
-# 
-# setwd("/home/deniz/Documents/Jochen plot")
-# butz0703 <- read.delim("Messwertaufzeichnung2015.07.30(1).csv", dec= ".", sep= ",", header = TRUE)
-# butz0803 <- read.delim("Messwertaufzeichnung2015.08.03(1).csv", dec= ".", sep= ",", header = TRUE)
-# 
-
-
 library(ggplot2)
 library(gstat)
 library(sp)
