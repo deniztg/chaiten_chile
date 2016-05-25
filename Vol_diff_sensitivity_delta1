@@ -10,8 +10,8 @@ library(dismo)
 
 # load data
 setwd("/home/deniz/UNI/M.Sc Arbeit Chile/Data/R/volume/corrected_data")
-d14 <- read.delim("14_delta2", sep= ";", dec = ",", header = TRUE)
-d15 <- read.delim("15_delta2", sep= ";", dec = ",", header = TRUE)
+d14 <- read.delim("ds14_dgps.csv", sep= ";", dec = ",", header = TRUE)
+d15 <- read.delim("ds15_dgps.csv", sep= ";", dec = ",", header = TRUE)
 d14 <- d14[, c(1,2,6)]
 d15 <- d15[, c(1,2,6)]
 
