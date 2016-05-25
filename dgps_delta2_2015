@@ -1,0 +1,72 @@
+# R packages
+library(ggplot2)
+library(gstat)
+library(sp)
+library(maptools)
+library(mapplots)
+library(rgeos)
+library(rasterVis)  # raster visualisation
+library(raster)
+library(rgl)
+library(rgdal)
+
+# Set working directory
+setwd("/home/deniz/UNI/M.Sc Arbeit Chile/Data/R/DGPS/delta north 2015")
+
+# Data input
+d15 <- read.delim("dn15_dgps.csv", sep= ";", dec = ",", header = TRUE)
+d15 <- d15[, c(1,2,7)]
+
+# Interpolationarea
+x.range <- as.numeric(c(684664.6,686966.2))
+y.range <- as.numeric(c(5244958,5246579))
+
+# Create grid
+grd <- expand.grid(x = seq(from = x.range[1], to = x.range[2], by = 20), 
+                   y = seq(from = y.range[1], to = y.range[2], by = 20)) 
+
+# Set spatial reference
+coordinates(d15) = ~X+Y
+proj4string(d15) <- CRS("+init=epsg:32718")
+
+# Expand points to grid
+grd.pts14 = SpatialPixels(SpatialPoints(grd, proj4string=CRS("+init=epsg:32718")))
+
+# Load polygon Shapefile
+delta <- readOGR("./shape/", layer="intshape2") 
+
+# Create spatial grid
+grd = as(grd.pts14, "SpatialGrid")
+
+# Create Semivariogram
+semivariog2 <- variogram(H~1, locations=d15, data=d15)
+plot(semivariog2)
+semivariog2
+vgm()
+
+# Set Sill, Nugget and Range values + chose mathematical model
+model.variog2 <- vgm(psill=5.0, model="Gau", nugget=0.01, range=544)
+
+# fit model to semivariogram
+
+fit.variog2 <- fit.variogram(semivariog2, model.variog2)
+plot(semivariog2, fit.variog2)
+
+# interpolate data
+krig2 <- krige(formula= H~1, locations=d15, newdata=grd, model=model.variog2)
+
+# rename and plot
+krigint2 <- (krig2["var1.pred"])
+spplot(krigint2)
+
+# convert to raster layer
+k15 <- raster(krigint2)
+
+# crop with polygone shapefile
+r15_1 <- crop(k15, delta)
+r15_2 <- mask(r15_1, delta)
+
+spplot(r15_2)
+
+# write geotiff raster file
+writeRaster(r15_2, "d15_N_interpol", format = "GTiff", overwrite=TRUE)
