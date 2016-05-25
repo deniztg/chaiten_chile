@@ -1,0 +1,141 @@
+# library (ggplot2)
+# library(scales)
+# 
+# setwd("/home/deniz/Documents/Jochen plot")
+# butz0703 <- read.delim("Messwertaufzeichnung2015.07.30(1).csv", dec= ".", sep= ",", header = TRUE)
+# butz0803 <- read.delim("Messwertaufzeichnung2015.08.03(1).csv", dec= ".", sep= ",", header = TRUE)
+# 
+
+
+library(ggplot2)
+library(gstat)
+library(sp)
+library(rgeos)
+library(rasterVis) 
+library(raster)
+library(rgl)
+library(rgdal)
+library(dismo)
+
+# load data
+setwd("/home/deniz/UNI/M.Sc Arbeit Chile/Data/R/volume/corrected_data")
+d14 <- read.delim("14_delta2", sep= ";", dec = ",", header = TRUE)
+d15 <- read.delim("15_delta2", sep= ";", dec = ",", header = TRUE)
+d14 <- d14[, c(1,2,6)]
+d15 <- d15[, c(1,2,6)]
+
+# set interpolationarea
+x.range <- as.numeric(c(685015.537,686336.035)) 
+y.range <- as.numeric(c(5243419.399,5244895.877))
+
+# expand grid to interpolationarea
+grd <- expand.grid(x = seq(from = x.range[1], to = x.range[2], by = 20), y = seq(from = y.range[1], 
+                                                                                 to = y.range[2], by = 20)) # expand points to grid                                                                                 
+
+# allocate spacial reference to the data
+coordinates(d14) = ~X+Y
+coordinates(d15) = ~X+Y
+
+proj4string(d14) <- CRS("+init=epsg:32718")
+proj4string(d15) <- CRS("+init=epsg:32718")
+
+# allocate spatial reference to the grid
+grd.pts14 = SpatialPixels(SpatialPoints(grd, proj4string=CRS("+init=epsg:32718")))
+grd = as(grd.pts14, "SpatialGrid")
+
+
+# load shapefile of the delta plane
+delta <- readOGR(".", layer="delta2") 
+
+#empty lists
+ilist <- c()
+dvlist <- c()
+
+# for-loop with an n=10 sample size interval  
+# regular sampling with n=10 from the dgps data
+for(i in seq(from=10, to=770, by=10)){
+  d1410 <- d14[sample(1:nrow(d14), i, replace=F), ]
+  d1510 <- d15[sample(1:nrow(d15), i, replace=F), ]                      
+  grd.pts14 = SpatialPixels(SpatialPoints(grd, proj4string=CRS("+init=epsg:32718")))
+  grd = as(grd.pts14, "SpatialGrid")
+  gridded(grd)
+  
+  # Calculates the sample variogram from data.  
+  semivariog<-variogram(HM~1, locations=d1410, data=d1410) 
+  plot(semivariog)
+  semivariog
+  
+  # range of model shapes available in vgm()
+  vgm()
+  
+  # estimate sill, range, nugget from the semivariogram and choose model to fit the model to the data 
+  model.variog<-vgm(psill=1.1, model="Exp", nugget=0.05, range=585)
+  fit.variog<-fit.variogram(semivariog, model.variog)
+  plot(semivariog, fit.variog)
+  
+  # krige() function in gstat package to generate an ordinary Kriged surface
+  krig <- krige(formula= HM~1, locations=d1410, newdata=grd, model=model.variog)
+  krigint <- (krig["var1.pred"])
+  
+  # plot result
+  spplot(krigint)
+  
+  #same procedure for the 2015 dataset
+  semivariog2 <- variogram(H~1, locations=d1510, data=d1510)
+  plot(semivariog2)
+  semivariog2
+  vgm()
+  model.variog2 <- vgm(psill=1.15, model="Exp", nugget=0.03, range=610)
+  fit.variog2 <- fit.variogram(semivariog2, model.variog2)
+  plot(semivariog2, fit.variog2)
+  krig2 <- krige(formula= H~1, locations=d1510, newdata=grd, model=model.variog2)
+  krigint2 <- (krig2["var1.pred"])
+  spplot(krigint2)
+  
+  # convert into a raster file  
+  r14 <- raster(krigint)
+  r15 <- raster(krigint2)
+  
+  # clip with polygon of the delta plane  
+  r14_1 <- crop(r14, delta)
+  r14_2 <- mask(r14_1, delta)
+  
+  # clip with polygon of the delta plane  
+  r15_1 <- crop(r15, delta)
+  r15_2 <- mask(r15_1, delta)
+  
+  # Change detection: Surface difference of the interpolated raster data
+  CD <- r14_2-r15_2
+  spplot(CD)
+  
+  # calulate volume difference by multiplication of the cell area (20m x 20m) with the summed-up elevation difference values for each cell
+  dV <- (cellStats(20^2 * CD, 'sum'))
+  dV 
+  
+  print(dV)
+  print(i)
+  
+  #save all values into a list
+  ilist <- c(ilist,i)
+  dvlist <- c(dvlist,dV)
+}
+
+fancy_scientific <- function(l) {
+  # turn in to character string in scientific notation
+  l <- format(l, scientific = TRUE)
+  # quote the part before the exponent to keep all the digits
+  l <- gsub("^(.*)e", "'\\1'e", l)
+  # turn the 'e+' into plotmath format
+  l <- gsub("e", "%*%10^", l)
+  # return this as an expression
+  parse(text=l)
+} 
+
+# plot data from lists                     
+ggplot()+ geom_point(aes(x=ilist, y=dvlist), pch=19, size= 2, col="dark blue") +
+  xlab("Samplesize [n]") + ylab("Volume [km^3]")+ ggtitle("Sensitivity of DGPS Data")+ 
+  scale_x_continuous(breaks = seq(from = 0, to = 770, by = 100))+
+  scale_y_continuous(breaks = seq(from = 0.5e5, to = 5e5, by = 1e5),label= fancy_scientific)+
+  theme_bw()+ theme(axis.text=element_text(size=12),
+                    axis.title=element_text(size=14)
+  )
