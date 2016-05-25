@@ -1,11 +1,14 @@
 
 # R packages
+library(ggplot2)
+library(gstat)
 library(sp)
-library(grid)
+library(maptools)
+library(mapplots)
 library(rgeos)
-library(fitdistrplus)
 library(rasterVis)  # raster visualisation
 library(raster)
+library(rgl)
 library(rgdal)
 
 #Data input
