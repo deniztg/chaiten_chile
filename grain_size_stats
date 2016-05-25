@@ -1,0 +1,52 @@
+library (rysgran)
+library (ggplot2)
+
+# load sieving data
+setwd("/home/deniz/UNI/M.Sc Arbeit Chile/Data/R/GrainSize-error/samples_sediment_fin")
+delta_tran <- read.delim("2013-delta-samples.csv", dec=",",sep = ";" , header = FALSE)
+pre_erup <- read.delim("2015-avulsion-samples.csv", dec=",",sep = ";" , header = FALSE)
+catchment <- read.delim("2015-catchment-samples.csv", dec=",",sep = ";" , header = FALSE)
+longshore <- read.delim("2015-longshore-samples.csv", dec=",",sep = ";" , header = FALSE)
+
+# define row names for rysgran package  
+row.names(delta_tran) <- delta_tran$V1
+delta_tran$V1      <- NULL
+
+row.names(pre_erup) <- pre_erup$V1
+pre_erup$V1      <- NULL
+
+row.names(catchment) <- catchment$V1
+catchment$V1      <- NULL
+
+row.names(longshore) <- longshore$V1
+longshore$V1      <- NULL
+
+# convert sieves sizes for rysgran package in phi- values
+delta_tran[1,] <- -log2(delta_tran[1,])
+pre_erup[1,] <- -log2(pre_erup[1,])
+catchment[1,] <- -log2(catchment[1,])
+longshore[1,] <- -log2(longshore[1,])
+
+# calculating grain size statistics using gran.stats function of rysgran package
+transect_f <- gran.stats(delta_tran[1:17], output="phi", method = "folk" , verbal = FALSE)
+pre_erup_f <- gran.stats(pre_erup[1:12], output="phi", method = "folk" , verbal = FALSE)
+catchment_f <- gran.stats(catchment[1:13], output="phi", method = "folk" , verbal = FALSE)
+longshore_f <- gran.stats(longshore[1:11], output="phi", method = "folk" , verbal = FALSE)
+
+# round values on two digits
+transect_f <-round(transect_f, 2) 
+pre_erup_f <-round(pre_erup_f, 2) 
+catchment_f <-round(catchment_f, 2) 
+longshore_f <-round(longshore_f, 2) 
+
+# writing tables with grain size statistics: Mean, Median, Sorting, Skewness, Kurtosis
+write.table(transect_f, "stat_transect.csv", sep=";", row.names=TRUE, col.names=TRUE) 
+write.table(pre_erup_f, "stat_pre_erup.csv", sep=";", row.names=TRUE, col.names=TRUE) 
+write.table(catchment_f, "stat_catchment.csv", sep=";", row.names=TRUE, col.names=TRUE) 
+write.table(longshore_f, "stat_longshore.csv", sep=";", row.names=TRUE, col.names=TRUE) 
+
+# combine table
+big_plot <- rbind(transect_f, pre_erup_f, catchment_f, longshore_f)
+
+# save table
+write.table(big_plot, "merged.csv", sep=";", row.names=TRUE, col.names=TRUE) 
