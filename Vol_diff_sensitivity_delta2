@@ -13,8 +13,8 @@ library(dismo)
 
 # set working directory and load data
 setwd("/home/deniz/UNI/M.Sc Arbeit Chile/Data/R/volume/corrected_data")
-d14 <- read.delim("d14_exp.csv", sep= ";", dec = ",", header = TRUE)
-d15 <- read.delim("d15_exp2.csv", sep= ";", dec = ",", header = TRUE)
+d14 <- read.delim("dn14_dgps.csv", sep= ";", dec = ",", header = TRUE)
+d15 <- read.delim("dn15_dgps.csv", sep= ";", dec = ",", header = TRUE)
 d14 <- d14[, c(1,2,6)]
 d15 <- d15[, c(1,2,7)]
 
