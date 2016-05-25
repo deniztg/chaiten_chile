@@ -1,0 +1,69 @@
+# creates empty list
+rlist <- c()
+
+# range of possible porosity and interbal size
+phi <- seq(0.3, 0.45, 0.005)
+
+# void ratio
+e <- phi/(1-phi)
+
+# Volume of deposit (minimum delta volume (m^3))
+V <- 1.07e+07 
+
+# Range of sediment concentration (hyperconcentrated flow)
+C <- seq(20, 60, 5)
+
+# create empty data frames
+res <- data.frame()                    
+res2 <- data.frame()                   
+
+# 1st for-loop with porosity range
+for(e_est in phi){        
+  
+  # 2nd for-loop with range of sediment concentration
+  for (C_est in C){ 
+    
+    # void ratio  
+    e <- e_est/(1-e_est)
+    
+    # total runoff [m^3] of the hyperconcentrated flows. Derived from C = V*(1-e) * 100/ R    
+    R <- -(100*(e-1)*1.07e+07)/C_est
+    print(R)
+    
+    # write results to list
+    rlist <- c(rlist, R)
+    res <- rbind(res, R)
+    res2 <- rbind(res2,e_est)
+    
+    # end of loops
+  }
+}
+
+# rename
+result <- cbind(res,res2)
+names(result) <- c("R", "e")
+result
+
+# design of plot
+fancy_scientific <- function(l) {
+  # turn in to character string in scientific notation
+  l <- format(l, scientific = TRUE)
+  # quote the part before the exponent to keep all the digits
+  l <- gsub("^(.*)e", "'\\1'e", l)
+  # turn the 'e+' into plotmath format
+  l <- gsub("e", "%*%10^", l)
+  # return this as an expression
+  parse(text=l)
+}
+
+# plot results
+ggplot(result, aes(e, R))+geom_point()+ labs(x = "Void ratio")+ labs(y = "Total inflow [m³]")+ 
+  geom_segment(aes(x = 0.383, y = 5.3e06, xend = 0.383, yend = 2.6e07, color= "blue"), 
+               show.legend= F, arrow = arrow(length = unit(0.3, "cm")))+
+  annotate("text", x=0.390, y=2.3e7, label="Decreasing sediment \n concentration", size=4.5, angle=90)+
+  annotate("text", x= 0.315, y=6e6, label="Mean total inflow [m³]: \n 1.7 * 10⁷", size=4.5)+
+  annotate("rect", xmin = 0.296, xmax = 0.333, ymin = 5e6, ymax = 7e6, color= "blue", alpha = .2)+
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14,face="bold"))+  
+  scale_x_continuous(breaks = seq(from = 0.2, to = 0.5, by = 0.01))+
+  scale_y_continuous(breaks = seq(from = 4e6, to = 5e7, by = 2e6), labels = fancy_scientific)
